@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "controme",
-        "version": "0.6.0-jb.4",
+        "version": "0.6.0-jb.5",
         "news": {
+            "0.6.0-jb.5": {
+                "en": "Discovery: program radio ids and the page's switch script (no content)",
+                "de": "Erkundung: Programm-Radio-IDs und das Umschalt-Skript der Seite (ohne Inhalte)",
+                "ru": "Discovery: program radio ids and the page's switch script (no content)",
+                "pt": "Discovery: program radio ids and the page's switch script (no content)",
+                "nl": "Discovery: program radio ids and the page's switch script (no content)",
+                "fr": "Discovery: program radio ids and the page's switch script (no content)",
+                "it": "Discovery: program radio ids and the page's switch script (no content)",
+                "es": "Discovery: program radio ids and the page's switch script (no content)",
+                "pl": "Discovery: program radio ids and the page's switch script (no content)",
+                "uk": "Discovery: program radio ids and the page's switch script (no content)",
+                "zh-cn": "Discovery: program radio ids and the page's switch script (no content)"
+            },
             "0.6.0-jb.4": {
                 "en": "Logs the masked structure of the program list once (to detect the active program)",
                 "de": "Protokolliert einmal die maskierte Struktur der Programmliste (aktives Programm erkennen)",
