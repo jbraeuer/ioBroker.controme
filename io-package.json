@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "controme",
-        "version": "0.5.7",
+        "version": "0.6.0-jb.1",
         "news": {
+            "0.6.0-jb.1": {
+                "en": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "de": "Hausweite Temperaturszenen: Szenen und aktive Szene lesen, Szene für die ganze Wohnung aktivieren",
+                "ru": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "pt": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "nl": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "fr": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "it": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "es": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "pl": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "uk": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
+                "zh-cn": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat"
+            },
             "0.5.7": {
                 "en": "Made adapter safe to handle different versions of API",
                 "de": "Adapter sicher gemacht, um verschiedene Versionen von API zu verarbeiten",

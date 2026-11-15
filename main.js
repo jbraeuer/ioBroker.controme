@@ -9,6 +9,7 @@ const axios = require('axios').default;
 const dayjs = require('dayjs');
 const formData = require('form-data');
 const { isObject } = require('iobroker.controme/lib/tools');
+const house = require('./lib/house');
 
 function roundTo(number, decimals = 0) {
     return Math.round(number * Math.pow(10, decimals)) / Math.pow(10, decimals);
@@ -138,6 +139,7 @@ class Controme extends utils.Adapter {
         this.subscribeStates('*.temporary_mode_remaining');
         this.subscribeStates('*.sensors.*.actualTemperature');
         this.subscribeStates('*.offsets.*');
+        this.subscribeStates('house.setScene');
     }
 
     /*
@@ -162,6 +164,7 @@ class Controme extends utils.Adapter {
         if (!this.delayPolling) {
             this._pollRoomTemps();
             this._pollOuts();
+            this._pollScenes();
             if (this.config.gateways != null && typeof this.config.gateways[Symbol.iterator] === 'function') {
                 this._pollGateways();
             }
@@ -1455,6 +1458,12 @@ class Controme extends utils.Adapter {
             return;
         }
 
+        // House-wide commands (whole flat), handled before the per-room logic
+        if (!state.ack && id === `${this.namespace}.house.setScene`) {
+            await this.handleSetScene(state.val);
+            return;
+        }
+
         // Only react to changes initiated by the user, where ack == false
         if (!state.ack) {
             const [, roomID] = id.match(/^controme\.\d\.(\d+)/) || [];
@@ -1520,6 +1529,140 @@ class Controme extends utils.Adapter {
     extractApiID(id) {
         const match = id.match(/offsets\.[^.]+\.(.+)/);
         return match ? match[1] : null;
+    }
+
+    // ---------- House-wide temperature scenes (whole flat) ----------
+
+    // Creates the house channel and the command states once (idempotent)
+    async _createHouseObjects() {
+        if (this._houseObjectsCreated) {
+            return;
+        }
+        await this.setObjectNotExistsAsync('house', {
+            type: 'channel',
+            common: { name: 'House (whole flat)' },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('house.scenes', {
+            type: 'channel',
+            common: { name: 'Temperature scenes' },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('house.activeScene', {
+            type: 'state',
+            common: {
+                name: 'Active temperature scene (id, 0 = none)',
+                type: 'number',
+                role: 'value',
+                read: true,
+                write: false,
+                def: 0,
+            },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('house.activeSceneName', {
+            type: 'state',
+            common: {
+                name: 'Active temperature scene (name)',
+                type: 'string',
+                role: 'text',
+                read: true,
+                write: false,
+                def: '',
+            },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('house.setScene', {
+            type: 'state',
+            common: {
+                name: 'Activate a temperature scene for the whole flat (id or name)',
+                type: 'mixed',
+                role: 'level',
+                read: true,
+                write: true,
+            },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('house.sceneDuration', {
+            type: 'state',
+            common: {
+                name: 'Duration for house.setScene in minutes (0 = until the next switch point)',
+                type: 'number',
+                role: 'level.timer',
+                unit: 'min',
+                min: 0,
+                read: true,
+                write: true,
+                def: 0,
+            },
+            native: {},
+        });
+        this._houseObjectsCreated = true;
+    }
+
+    // Polls the temperature scenes and updates house.* (an error here does not stop the room polling)
+    async _pollScenes() {
+        const url = `http://${this.config.url}/get/json/v1/${this.config.houseID}/temperaturszenen/`;
+        try {
+            const response = await axios.get(url, { timeout: 15000 });
+            await this._processScenes(house.parseScenes(response.data));
+        } catch (error) {
+            this._logAxiosError(error, 'Polling temperature scenes failed');
+        }
+    }
+
+    async _processScenes(scenes) {
+        await this._createHouseObjects();
+        this.scenes = scenes;
+        for (const s of scenes) {
+            const base = `house.scenes.${house.sceneKey(s.id)}`;
+            await this.setObjectNotExistsAsync(base, { type: 'channel', common: { name: s.name }, native: {} });
+            await this.setObjectNotExistsAsync(`${base}.name`, {
+                type: 'state',
+                common: { name: 'Scene name', type: 'string', role: 'text', read: true, write: false },
+                native: {},
+            });
+            await this.setObjectNotExistsAsync(`${base}.active`, {
+                type: 'state',
+                common: { name: 'Scene is active', type: 'boolean', role: 'indicator', read: true, write: false },
+                native: {},
+            });
+            await this.setStateChangedAsync(`${base}.name`, s.name, true);
+            await this.setStateChangedAsync(`${base}.active`, s.active, true);
+        }
+        const active = house.activeSceneId(scenes);
+        const hit = scenes.find(s => s.id === active);
+        await this.setStateChangedAsync('house.activeScene', active, true);
+        await this.setStateChangedAsync('house.activeSceneName', hit ? hit.name : '', true);
+    }
+
+    // house.setScene written (ack false): activate the scene for every room
+    async handleSetScene(value) {
+        if (!this.scenes) {
+            await this._pollScenes();
+        }
+        const id = house.resolveScene(value, this.scenes || []);
+        if (!id) {
+            this.log.warn(`house.setScene: "${value}" is no known temperature scene`);
+            return;
+        }
+        const durationState = await this.getStateAsync('house.sceneDuration');
+        const duration = house.sceneDuration(durationState ? durationState.val : 0);
+        const url = `http://${this.config.url}/set/json/v1/${this.config.houseID}/temperaturszenen/${id}/`;
+        const form = new formData();
+        form.append('user', this.config.user);
+        form.append('password', this.config.password);
+        if (duration) {
+            form.append('duration', duration);
+        }
+        try {
+            await axios.post(url, form, { headers: form.getHeaders(), timeout: 15000 });
+            this.log.info(`House: activated temperature scene ${id}${duration ? ` for ${duration} min` : ''}`);
+            await this.setState('house.setScene', { val: value, ack: true });
+            await this._pollScenes();
+        } catch (error) {
+            this._logAxiosError(error, `House: failed to activate temperature scene ${id}`);
+        }
     }
 
     // Handler for setpointTemperaturePerm

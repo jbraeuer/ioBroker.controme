@@ -74,6 +74,21 @@ To start the adapter, the following data need to be provided in the admin settin
 | gatewayOutputs.outputName | string | The name of the respective output of the gateway. |
 
 
+## House-wide temperature scenes (whole flat)
+
+The adapter reads the temperature scenes of the house (`GET temperaturszenen/`) on every poll:
+
+| State | Type | Description |
+|---|---|---|
+| `house.scenes.<id>.name` | string | Name of the scene as set on the Controme server |
+| `house.scenes.<id>.active` | boolean | The scene is active in at least one room |
+| `house.activeScene` | number | Id of the active scene (the one with the most active rooms), 0 = none |
+| `house.activeSceneName` | string | Its name |
+| `house.setScene` | id or name | Write (ack = false) to activate a scene for **every room** (`POST temperaturszenen/<id>/` without `room_id`). Names are matched case-insensitively, a trailing `*` (default scene) is ignored. |
+| `house.sceneDuration` | number (min) | Duration for `house.setScene`. 0 = until the next manual change or the next switch point of the heating program |
+
+Note: a scene is not a heating program (week schedule). The public Controme API has no call to switch the heating program.
+
 ## To Dos
 
 1. (in progress) Testing, testing, testing
@@ -88,6 +103,9 @@ To start the adapter, the following data need to be provided in the admin settin
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+### 0.6.0-jb.1 (2026-11-15)
+* (jbraeuer) House-wide temperature scenes: read scenes, active scene, activate a scene for the whole flat (`house.*`)
+
 ### 0.5.7 (2025-02-22)
 * (MadErstam) Made adapter safe to handle different versions of API
 * (MadErstam) Switched from got to axios for future compatibility
