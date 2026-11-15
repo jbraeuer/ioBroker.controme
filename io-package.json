@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "controme",
-        "version": "0.6.0-jb.3",
+        "version": "0.6.0-jb.4",
         "news": {
+            "0.6.0-jb.4": {
+                "en": "Logs the masked structure of the program list once (to detect the active program)",
+                "de": "Protokolliert einmal die maskierte Struktur der Programmliste (aktives Programm erkennen)",
+                "ru": "Logs the masked structure of the program list once (to detect the active program)",
+                "pt": "Logs the masked structure of the program list once (to detect the active program)",
+                "nl": "Logs the masked structure of the program list once (to detect the active program)",
+                "fr": "Logs the masked structure of the program list once (to detect the active program)",
+                "it": "Logs the masked structure of the program list once (to detect the active program)",
+                "es": "Logs the masked structure of the program list once (to detect the active program)",
+                "pl": "Logs the masked structure of the program list once (to detect the active program)",
+                "uk": "Logs the masked structure of the program list once (to detect the active program)",
+                "zh-cn": "Logs the masked structure of the program list once (to detect the active program)"
+            },
             "0.6.0-jb.3": {
                 "en": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
                 "de": "Programmwechsel gehärtet: mehrdeutige Liste wird nie geschaltet, Web-Sitzung serialisiert, Zustand nach dem Wechsel bestätigt",

@@ -1759,6 +1759,9 @@ class Controme extends utils.Adapter {
             this.log.info(
                 `Heating program: the active program is not visible in the page markup; programs: ${p.names.join(', ')}`,
             );
+            for (const line of p.skeleton || []) {
+                this.log.info(`Heating program list entry (masked): ${line}`);
+            }
         }
     }
 
