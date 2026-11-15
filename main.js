@@ -10,6 +10,7 @@ const dayjs = require('dayjs');
 const formData = require('form-data');
 const { isObject } = require('iobroker.controme/lib/tools');
 const house = require('./lib/house');
+const { WebUi, resolveProgram } = require('./lib/webui');
 
 function roundTo(number, decimals = 0) {
     return Math.round(number * Math.pow(10, decimals)) / Math.pow(10, decimals);
@@ -140,6 +141,7 @@ class Controme extends utils.Adapter {
         this.subscribeStates('*.sensors.*.actualTemperature');
         this.subscribeStates('*.offsets.*');
         this.subscribeStates('house.setScene');
+        this.subscribeStates('house.heatingProgram');
     }
 
     /*
@@ -165,6 +167,7 @@ class Controme extends utils.Adapter {
             this._pollRoomTemps();
             this._pollOuts();
             this._pollScenes();
+            this._pollProgram();
             if (this.config.gateways != null && typeof this.config.gateways[Symbol.iterator] === 'function') {
                 this._pollGateways();
             }
@@ -1463,6 +1466,10 @@ class Controme extends utils.Adapter {
             await this.handleSetScene(state.val);
             return;
         }
+        if (!state.ack && id === `${this.namespace}.house.heatingProgram`) {
+            await this.handleSetProgram(state.val);
+            return;
+        }
 
         // Only react to changes initiated by the user, where ack == false
         if (!state.ack) {
@@ -1687,6 +1694,115 @@ class Controme extends utils.Adapter {
             this.log.warn(`house.setScene: ack failed: ${e}`),
         );
         await this._pollScenes();
+    }
+
+    // ---------- Heating program (week schedule) of the whole flat, via the web UI ----------
+
+    async _createProgramObjects() {
+        if (this._programObjectsCreated) {
+            return;
+        }
+        await this._createHouseObjects();
+        await this.setObjectNotExistsAsync('house.heatingProgram', {
+            type: 'state',
+            common: {
+                name: 'Heating program of the whole flat (name; write a name to switch)',
+                type: 'string',
+                role: 'level',
+                read: true,
+                write: true,
+                def: '',
+            },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('house.heatingPrograms', {
+            type: 'state',
+            common: {
+                name: 'Heating programs (JSON list of names)',
+                type: 'string',
+                role: 'json',
+                read: true,
+                write: false,
+                def: '[]',
+            },
+            native: {},
+        });
+        this._programObjectsCreated = true;
+    }
+
+    _webUi() {
+        if (!this.webui) {
+            this.webui = new WebUi(axios, this.config);
+        }
+        return this.webui;
+    }
+
+    async _publishPrograms(p) {
+        await this._createProgramObjects();
+        this.programs = p.names;
+        await this.setStateChangedAsync('house.heatingPrograms', JSON.stringify(p.names), true);
+        await this.setStateChangedAsync('house.heatingProgram', p.active >= 0 ? p.names[p.active] : '', true);
+        if (p.active < 0 && p.names.length && !this._programMarkupLogged) {
+            this._programMarkupLogged = true;
+            this.log.info(
+                `Heating program: the active program is not visible in the page markup; programs: ${p.names.join(', ')}`,
+            );
+        }
+    }
+
+    // Reads the programs (needs user/password; an error does not stop the room polling)
+    async _pollProgram() {
+        if (!this.config.user || !this.config.password || this._programBusy) {
+            return;
+        }
+        this._programBusy = true;
+        try {
+            await this._publishPrograms(await this._webUi().readPrograms());
+            this._programPollFailing = false;
+        } catch (error) {
+            if (!this._programPollFailing) {
+                this.log.warn(`Heating program: ${error.message} (further failures suppressed until success)`);
+            }
+            this._programPollFailing = true;
+        } finally {
+            this._programBusy = false;
+        }
+    }
+
+    // house.heatingProgram written (ack false): switch the whole flat. Fail closed: only names read just now.
+    async handleSetProgram(value) {
+        if (!this.config.user || !this.config.password) {
+            this.log.warn('house.heatingProgram: no user/password in the adapter config');
+            return;
+        }
+        const ui = this._webUi();
+        let p;
+        try {
+            p = await ui.readPrograms();
+        } catch (error) {
+            this.log.warn(`house.heatingProgram: programs not readable, not switching (${error.message})`);
+            return;
+        }
+        const index = resolveProgram(value, p.names);
+        if (index < 0) {
+            this.log.warn(`house.heatingProgram: "${value}" is no heating program (${p.names.join(', ')})`);
+            await this._publishPrograms(p);
+            return;
+        }
+        try {
+            await ui.activate(index);
+        } catch (error) {
+            this.log.warn(`house.heatingProgram: switching to "${p.names[index]}" failed (${error.message})`);
+            return;
+        }
+        this.log.info(`House: heating program switched to "${p.names[index]}"`);
+        try {
+            const after = await ui.readPrograms();
+            // markup without an active marker: trust the successful switch
+            await this._publishPrograms(after.active >= 0 ? after : { ...after, active: index });
+        } catch (error) {
+            this.log.warn(`house.heatingProgram: switched, but re-reading failed (${error.message})`);
+        }
     }
 
     // Handler for setpointTemperaturePerm

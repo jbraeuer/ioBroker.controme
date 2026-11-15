@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "controme",
-        "version": "0.6.0-jb.1",
+        "version": "0.6.0-jb.2",
         "news": {
+            "0.6.0-jb.2": {
+                "en": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "de": "Heizprogramm der ganzen Wohnung lesen und umschalten (über die Web-Oberfläche, house.heatingProgram)",
+                "ru": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "pt": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "nl": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "fr": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "it": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "es": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "pl": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "uk": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
+                "zh-cn": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)"
+            },
             "0.6.0-jb.1": {
                 "en": "House-wide temperature scenes: read scenes and the active scene, activate a scene for the whole flat",
                 "de": "Hausweite Temperaturszenen: Szenen und aktive Szene lesen, Szene für die ganze Wohnung aktivieren",

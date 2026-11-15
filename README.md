@@ -87,7 +87,17 @@ The adapter reads the temperature scenes of the house (`GET temperaturszenen/`) 
 | `house.setScene` | id or name | Write (ack = false) to activate a scene for **every room** (`POST temperaturszenen/<id>/` without `room_id`). Names are matched case-insensitively, a trailing `*` (default scene) is ignored. |
 | `house.sceneDuration` | number (min) | Duration for `house.setScene`. 0 = until the next manual change or the next switch point of the heating program |
 
-Note: a scene is not a heating program (week schedule). The public Controme API has no call to switch the heating program.
+Note: a scene is not a heating program (week schedule).
+
+## Heating program of the whole flat (week schedule)
+
+The public API has no call for the heating program, so the adapter uses the web UI with the configured user and password (login form, then `POST /m_heizprogramm/<house>/` with `activated=<index>`). Undocumented: a Controme update may break it; the adapter then logs a warning and switches nothing.
+
+| State | Type | Description |
+|---|---|---|
+| `house.heatingPrograms` | JSON | Program names in the order of the web UI |
+| `house.heatingProgram` | string | Active program (empty if the page doesn't show it). Write a name (or its index) to switch the whole flat. Only names read from the page are accepted. |
+
 
 ## To Dos
 
@@ -103,6 +113,9 @@ Note: a scene is not a heating program (week schedule). The public Controme API 
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+### 0.6.0-jb.2 (2026-11-15)
+* (jbraeuer) Heating program of the whole flat via the web UI (`house.heatingProgram`, `house.heatingPrograms`)
+
 ### 0.6.0-jb.1 (2026-11-15)
 * (jbraeuer) House-wide temperature scenes: read scenes, active scene, activate a scene for the whole flat (`house.*`)
 
