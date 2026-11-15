@@ -1607,8 +1607,17 @@ class Controme extends utils.Adapter {
             const response = await axios.get(url, { timeout: 15000 });
             await this._processScenes(house.parseScenes(response.data));
         } catch (error) {
-            this._logAxiosError(error, 'Polling temperature scenes failed');
+            // log once, then stay quiet until the next success (e.g. firmware without temperaturszenen/)
+            if (!this._scenesPollFailing) {
+                this._logAxiosError(
+                    error,
+                    'Polling temperature scenes failed (further failures suppressed until success)',
+                );
+            }
+            this._scenesPollFailing = true;
+            return;
         }
+        this._scenesPollFailing = false;
     }
 
     async _processScenes(scenes) {
@@ -1616,7 +1625,7 @@ class Controme extends utils.Adapter {
         this.scenes = scenes;
         for (const s of scenes) {
             const base = `house.scenes.${house.sceneKey(s.id)}`;
-            await this.setObjectNotExistsAsync(base, { type: 'channel', common: { name: s.name }, native: {} });
+            await this.extendObjectAsync(base, { type: 'channel', common: { name: s.name }, native: {} }); // keeps a renamed scene's name current
             await this.setObjectNotExistsAsync(`${base}.name`, {
                 type: 'state',
                 common: { name: 'Scene name', type: 'string', role: 'text', read: true, write: false },
@@ -1629,6 +1638,14 @@ class Controme extends utils.Adapter {
             });
             await this.setStateChangedAsync(`${base}.name`, s.name, true);
             await this.setStateChangedAsync(`${base}.active`, s.active, true);
+        }
+        // a scene deleted on the server must not stay "active" forever (review)
+        const seen = new Set(scenes.map(s => `${this.namespace}.house.scenes.${house.sceneKey(s.id)}.active`));
+        const known = await this.getStatesAsync('house.scenes.*.active');
+        for (const sid of Object.keys(known || {})) {
+            if (!seen.has(sid) && known[sid] && known[sid].val !== false) {
+                await this.setStateAsync(sid, false, true);
+            }
         }
         const active = house.activeSceneId(scenes);
         const hit = scenes.find(s => s.id === active);
@@ -1646,23 +1663,30 @@ class Controme extends utils.Adapter {
             this.log.warn(`house.setScene: "${value}" is no known temperature scene`);
             return;
         }
-        const durationState = await this.getStateAsync('house.sceneDuration');
-        const duration = house.sceneDuration(durationState ? durationState.val : 0);
-        const url = `http://${this.config.url}/set/json/v1/${this.config.houseID}/temperaturszenen/${id}/`;
+        let duration = null;
+        try {
+            const ds = await this.getStateAsync('house.sceneDuration');
+            duration = house.sceneDuration(ds ? ds.val : 0);
+        } catch (e) {
+            this.log.warn(`house.setScene: cannot read house.sceneDuration (${e}), not activating`);
+            return;
+        }
+        const req = house.sceneRequest(this.config, id, duration);
         const form = new formData();
-        form.append('user', this.config.user);
-        form.append('password', this.config.password);
-        if (duration) {
-            form.append('duration', duration);
+        for (const [k, v] of req.fields) {
+            form.append(k, v);
         }
         try {
-            await axios.post(url, form, { headers: form.getHeaders(), timeout: 15000 });
-            this.log.info(`House: activated temperature scene ${id}${duration ? ` for ${duration} min` : ''}`);
-            await this.setState('house.setScene', { val: value, ack: true });
-            await this._pollScenes();
+            await axios.post(req.url, form, { headers: form.getHeaders(), timeout: 15000 });
         } catch (error) {
             this._logAxiosError(error, `House: failed to activate temperature scene ${id}`);
+            return;
         }
+        this.log.info(`House: activated temperature scene ${id}${duration ? ` for ${duration} min` : ''}`);
+        await this.setStateAsync('house.setScene', { val: value, ack: true }).catch(e =>
+            this.log.warn(`house.setScene: ack failed: ${e}`),
+        );
+        await this._pollScenes();
     }
 
     // Handler for setpointTemperaturePerm
