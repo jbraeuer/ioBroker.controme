@@ -1737,11 +1737,23 @@ class Controme extends utils.Adapter {
         return this.webui;
     }
 
-    async _publishPrograms(p) {
+    async _publishPrograms(p, confirm = false) {
         await this._createProgramObjects();
         this.programs = p.names;
         await this.setStateChangedAsync('house.heatingPrograms', JSON.stringify(p.names), true);
-        await this.setStateChangedAsync('house.heatingProgram', p.active >= 0 ? p.names[p.active] : '', true);
+        // active not visible in the markup: keep the last confirmed name instead of flipping to '' (review)
+        let name = p.active >= 0 ? p.names[p.active] : '';
+        if (!name && this._lastKnownProgram && p.names.includes(this._lastKnownProgram)) {
+            name = this._lastKnownProgram;
+        }
+        if (name) {
+            this._lastKnownProgram = name;
+        }
+        if (confirm) {
+            await this.setStateAsync('house.heatingProgram', name, true); // ack=true even if the value is unchanged
+        } else {
+            await this.setStateChangedAsync('house.heatingProgram', name, true);
+        }
         if (p.active < 0 && p.names.length && !this._programMarkupLogged) {
             this._programMarkupLogged = true;
             this.log.info(
@@ -1757,7 +1769,12 @@ class Controme extends utils.Adapter {
         }
         this._programBusy = true;
         try {
-            await this._publishPrograms(await this._webUi().readPrograms());
+            const ui = this._webUi();
+            const p = await ui.run(() => ui.readPrograms());
+            if (this._programWritePending) {
+                return; // a switch is running; its re-read publishes (review: no stale ack=true in between)
+            }
+            await this._publishPrograms(p);
             this._programPollFailing = false;
         } catch (error) {
             if (!this._programPollFailing) {
@@ -1776,32 +1793,43 @@ class Controme extends utils.Adapter {
             return;
         }
         const ui = this._webUi();
-        let p;
+        this._programWritePending = true;
         try {
-            p = await ui.readPrograms();
-        } catch (error) {
-            this.log.warn(`house.heatingProgram: programs not readable, not switching (${error.message})`);
-            return;
-        }
-        const index = resolveProgram(value, p.names);
-        if (index < 0) {
-            this.log.warn(`house.heatingProgram: "${value}" is no heating program (${p.names.join(', ')})`);
-            await this._publishPrograms(p);
-            return;
-        }
-        try {
-            await ui.activate(index);
-        } catch (error) {
-            this.log.warn(`house.heatingProgram: switching to "${p.names[index]}" failed (${error.message})`);
-            return;
-        }
-        this.log.info(`House: heating program switched to "${p.names[index]}"`);
-        try {
-            const after = await ui.readPrograms();
-            // markup without an active marker: trust the successful switch
-            await this._publishPrograms(after.active >= 0 ? after : { ...after, active: index });
-        } catch (error) {
-            this.log.warn(`house.heatingProgram: switched, but re-reading failed (${error.message})`);
+            // one serialized unit: read (fresh) -> resolve -> activate -> re-read (review: shared cookie jar)
+            await ui.run(async () => {
+                let p;
+                try {
+                    p = await ui.readPrograms();
+                } catch (error) {
+                    this.log.warn(`house.heatingProgram: programs not readable, not switching (${error.message})`);
+                    return;
+                }
+                const index = resolveProgram(value, p.names);
+                if (index < 0) {
+                    this.log.warn(
+                        `house.heatingProgram: "${value}" not switched (unknown name or ambiguous list: ${p.names.join(', ')})`,
+                    );
+                    await this._publishPrograms(p);
+                    return;
+                }
+                try {
+                    await ui.activate(index);
+                } catch (error) {
+                    this.log.warn(`house.heatingProgram: switching to "${p.names[index]}" failed (${error.message})`);
+                    return;
+                }
+                this.log.info(`House: heating program switched to "${p.names[index]}"`);
+                this._lastKnownProgram = p.names[index];
+                try {
+                    const after = await ui.readPrograms();
+                    // markup without an active marker: trust the successful switch
+                    await this._publishPrograms(after.active >= 0 ? after : { ...after, active: index }, true);
+                } catch (error) {
+                    this.log.warn(`house.heatingProgram: switched, but re-reading failed (${error.message})`);
+                }
+            });
+        } finally {
+            this._programWritePending = false;
         }
     }
 

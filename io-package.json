@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "controme",
-        "version": "0.6.0-jb.2",
+        "version": "0.6.0-jb.3",
         "news": {
+            "0.6.0-jb.3": {
+                "en": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "de": "Programmwechsel gehärtet: mehrdeutige Liste wird nie geschaltet, Web-Sitzung serialisiert, Zustand nach dem Wechsel bestätigt",
+                "ru": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "pt": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "nl": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "fr": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "it": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "es": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "pl": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "uk": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch",
+                "zh-cn": "Program switch hardened: ambiguous list never switched, serialized web UI session, confirmed state after a switch"
+            },
             "0.6.0-jb.2": {
                 "en": "Heating program (week schedule) of the whole flat: read and switch via the web UI (house.heatingProgram)",
                 "de": "Heizprogramm der ganzen Wohnung lesen und umschalten (über die Web-Oberfläche, house.heatingProgram)",

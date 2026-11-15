@@ -113,6 +113,9 @@ The public API has no call for the heating program, so the adapter uses the web 
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+### 0.6.0-jb.3 (2026-11-15)
+* (jbraeuer) Program switch hardened after review: a list with blank or duplicate names is never switched, one serialized web UI session, the state is confirmed (ack) after a switch
+
 ### 0.6.0-jb.2 (2026-11-15)
 * (jbraeuer) Heating program of the whole flat via the web UI (`house.heatingProgram`, `house.heatingPrograms`)
 
