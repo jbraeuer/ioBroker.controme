@@ -113,6 +113,9 @@ The public API has no call for the heating program, so the adapter uses the web 
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+### 0.6.0-jb.6 (2026-11-15)
+* (jbraeuer) Heating program: parses the real page (one radio per program, `checked` = active), switches by the program's own `data-heizpid`
+
 ### 0.6.0-jb.3 (2026-11-15)
 * (jbraeuer) Program switch hardened after review: a list with blank or duplicate names is never switched, one serialized web UI session, the state is confirmed (ack) after a switch
 

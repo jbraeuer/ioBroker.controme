@@ -10,7 +10,7 @@ const dayjs = require('dayjs');
 const formData = require('form-data');
 const { isObject } = require('iobroker.controme/lib/tools');
 const house = require('./lib/house');
-const { WebUi, resolveProgram } = require('./lib/webui');
+const { WebUi, programListOk, resolveProgram } = require('./lib/webui');
 
 function roundTo(number, decimals = 0) {
     return Math.round(number * Math.pow(10, decimals)) / Math.pow(10, decimals);
@@ -1759,9 +1759,6 @@ class Controme extends utils.Adapter {
             this.log.info(
                 `Heating program: the active program is not visible in the page markup; programs: ${p.names.join(', ')}`,
             );
-            for (const line of p.skeleton || []) {
-                this.log.info(`Heating program list entry (masked): ${line}`);
-            }
         }
     }
 
@@ -1807,7 +1804,7 @@ class Controme extends utils.Adapter {
                     this.log.warn(`house.heatingProgram: programs not readable, not switching (${error.message})`);
                     return;
                 }
-                const index = resolveProgram(value, p.names);
+                const index = programListOk(p.names, p.ids) ? resolveProgram(value, p.names) : -1;
                 if (index < 0) {
                     this.log.warn(
                         `house.heatingProgram: "${value}" not switched (unknown name or ambiguous list: ${p.names.join(', ')})`,
@@ -1816,7 +1813,7 @@ class Controme extends utils.Adapter {
                     return;
                 }
                 try {
-                    await ui.activate(index);
+                    await ui.activate(p.ids[index]);
                 } catch (error) {
                     this.log.warn(`house.heatingProgram: switching to "${p.names[index]}" failed (${error.message})`);
                     return;

@@ -1,8 +1,21 @@
 {
     "common": {
         "name": "controme",
-        "version": "0.6.0-jb.5",
+        "version": "0.6.0-jb.6",
         "news": {
+            "0.6.0-jb.6": {
+                "en": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "de": "Heizprogramm: echte Seite auswerten (Radio je Programm, checked = aktiv), Umschalten über die eigene Programm-ID",
+                "ru": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "pt": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "nl": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "fr": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "it": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "es": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "pl": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "uk": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id",
+                "zh-cn": "Heating program: parse the real page (radio per program, checked = active), switch by the program's own id"
+            },
             "0.6.0-jb.5": {
                 "en": "Discovery: program radio ids and the page's switch script (no content)",
                 "de": "Erkundung: Programm-Radio-IDs und das Umschalt-Skript der Seite (ohne Inhalte)",
