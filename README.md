@@ -89,6 +89,16 @@ The adapter reads the temperature scenes of the house (`GET temperaturszenen/`) 
 
 Note: a scene is not a heating program (week schedule).
 
+## Heating program of the whole flat (week schedule)
+
+The public API has no call for the heating program, so the adapter uses the web UI with the configured user and password (login form, then `POST /m_heizprogramm/<house>/` with `activated=<index>`). Undocumented: a Controme update may break it; the adapter then logs a warning and switches nothing.
+
+| State | Type | Description |
+|---|---|---|
+| `house.heatingPrograms` | JSON | Program names in the order of the web UI |
+| `house.heatingProgram` | string | Active program (empty if the page doesn't show it). Write a name (or its index) to switch the whole flat. Only names read from the page are accepted. |
+
+
 ## To Dos
 
 1. (in progress) Testing, testing, testing
@@ -105,6 +115,7 @@ Note: a scene is not a heating program (week schedule).
 -->
 ### **WORK IN PROGRESS**
 * (jbraeuer) House-wide temperature scenes: read the scenes and the active scene, activate a scene for the whole house (`house.*`, documented API `temperaturszenen/`)
+* (jbraeuer) Heating program (week schedule) of the whole house: read and switch via the web UI (`house.heatingProgram`, `house.heatingPrograms`); the public API has no call for it
 
 ### 0.5.7 (2025-02-22)
 * (MadErstam) Made adapter safe to handle different versions of API
